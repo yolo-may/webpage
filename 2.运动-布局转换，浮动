@@ -1,0 +1,133 @@
+布局转换，先存放div的位置，然后转换为绝对定位。zindex
+
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>www</title>
+<style>
+*{ margin:0; padding:0; list-style:none; font-family: "微软雅黑","张海山锐线体简"}
+#ul1{ border: solid 1px #333333; width:792px;height:792px;margin:0 auto; position:relative;}
+#ul1 li{width:250px;height:250px; float: left; margin-left:10px;margin-top:10px; background:#ccc; border:1px solid #000;}
+</style>
+<script>
+window.onload=function(){
+	var oUl=document.getElementById("ul1");
+	var oli=oUl.children;//***
+	var zIndex=2;
+	//1.布局转换
+	//实现原理：定义一个数组用以保存正常布局时 li 的位置，然后在转换为绝对定位之后在使用。
+	var arr=[];
+	for(i=0;i<oli.length;i++){
+		//arr.push({top:oli[i].offsetTop,left:oli[i].offsetLeft})
+		oli[i].style.top=oli[i].offsetTop+'px';
+		oli[i].style.left=oli[i].offsetLeft+'px';
+	}
+
+	//转换
+	for(var i=0;i<oli.length;i++){
+		oli[i].style.position='absolute';	
+		oli[i].style.margin=0;
+	}
+
+	//运动
+	for(var i=0;i<oli.length;i++){
+		oli[i].index=i;
+		oli[i].onmouseover=function(){
+			this.style.zIndex=zIndex++;//**
+			move(this,{width:300,height:300,marginLeft:-(300-250)/2,marginTop:-(300-250)/2})	//margin位置 
+		}
+
+		oli[i].onmouseout=function(){
+			move(this,{width:250,height:250,marginLeft:0,marginTop:0})	
+		}
+	}
+
+	
+};
+
+function getstyle(obj,attr){
+	return obj.currentStyle?obj.currentStyle[attr]:getComputedStyle(obj,false)[attr];
+}
+
+function move(obj,json,optional){
+	optional=optional||{};
+	optional.fn=optional.fn||null;
+	optional.time=optional.time||600;
+	optional.type=optional.type||'linear'
+
+	var start={};
+	var dis={};
+	var n=0;
+	var count=Math.round(optional.time/30);
+	for(key in json){
+		start[key]=parseFloat(getstyle(obj,key))
+		dis[key]=json[key]-start[key];
+	}
+	var timer=null;
+	clearInterval(obj.timer)
+	obj.timer=setInterval(function(){
+		n++;
+		for(key in json){
+			switch(optional.type){
+				case 'linear':
+					var a=n/count;
+					var cur=start[key]+dis[key]*a;
+					break;
+				case 'ease-in':
+					var a=n/count;
+					var cur=start[key]+dis[key]*a*a*a;
+					break;
+				case 'ease-out':
+					var a=1-n/count;
+					var cur=start[key]+dis[key]*(1-a*a*a);
+					break;
+				case 'ease-in-out':
+					var a=n/count;
+					if(a<=0.5){
+						a=a*1.5
+						var cur=start[key]+dis[key]*a*a*a;
+					}else{
+						move(obj,json,{time:optional.time/2,fn:optional.fn})
+					}
+					break;
+			}
+			//if放在for里面
+			if(key=='opacity'){
+				obj.style.opacity=cur;
+				obj.style.filter='alpha:(opacity:'+cur*100+')'
+			}else{
+				obj.style[key]=cur+'px'
+			}
+
+		}
+		//注意位置
+		if(n==count){
+			clearInterval(obj.timer)
+			optional.fn&&optional.fn()
+		}
+	},30)
+
+
+}
+
+
+</script>
+</head>
+
+<body>
+
+<ul id="ul1">
+	<li></li>
+	<li></li>
+	<li></li>
+	<li></li>
+	<li></li>
+	<li></li>
+	<li></li>
+	<li></li>
+	<li></li>
+</ul>
+
+</body>
+</html>
